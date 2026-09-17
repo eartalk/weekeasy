@@ -9,4 +9,6 @@ export function createDatabaseClient(connectionString: string): DatabaseClient {
   return new PrismaClient({ adapter });
 }
 
+// 供基础设施层引用 Prisma 输入/输出类型（如 InputJsonValue）。
+export { Prisma } from './generated/prisma/client.js';
 export * from './generated/prisma/enums.js';

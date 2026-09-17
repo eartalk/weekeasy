@@ -3,6 +3,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { BirthRecordResponse, CreateBirthRecordRequest } from '@weekeasy/api-contracts';
 import type { ServerEnvironment } from '@weekeasy/config/environment';
+import { ChartService } from '../../charts/application/chart.service.js';
 import {
   BIRTH_RECORD_REPOSITORY,
   type BirthRecordRepository,
@@ -15,6 +16,7 @@ export class BirthRecordService {
   constructor(
     @Inject(BIRTH_RECORD_REPOSITORY)
     private readonly repository: BirthRecordRepository,
+    @Inject(ChartService) private readonly charts: ChartService,
     @Inject(ConfigService) config: ConfigService<ServerEnvironment, true>,
   ) {
     this.hashSecret = config.get('DATA_HASH_SECRET', { infer: true });
@@ -34,6 +36,8 @@ export class BirthRecordService {
     if (!record) {
       throw this.notFound();
     }
+    // 出生记录创建后确定性生成命盘快照；失败会向上抛出，可重试。
+    await this.charts.generateAndSave(profileId, record.id, input);
     return record;
   }
 

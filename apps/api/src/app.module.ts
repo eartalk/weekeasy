@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { validateServerEnvironment } from '@weekeasy/config/environment';
 import { CacheModule } from './infrastructure/cache/cache.module.js';
 import { DatabaseModule } from './infrastructure/database/database.module.js';
+import { ChartsModule } from './modules/charts/charts.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { ProfilesModule } from './modules/profiles/profiles.module.js';
@@ -21,6 +22,7 @@ import { ProfilesModule } from './modules/profiles/profiles.module.js';
     HealthModule,
     IdentityModule,
     ProfilesModule,
+    ChartsModule,
   ],
 })
 export class AppModule {}

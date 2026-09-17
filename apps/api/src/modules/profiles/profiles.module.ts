@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ChartsModule } from '../charts/charts.module.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { BIRTH_RECORD_REPOSITORY } from './application/birth-record.repository.js';
 import { BirthRecordService } from './application/birth-record.service.js';
@@ -9,7 +10,7 @@ import { PrismaProfileRepository } from './infrastructure/prisma-profile.reposit
 import { ProfileController } from './presentation/profile.controller.js';
 
 @Module({
-  imports: [IdentityModule],
+  imports: [IdentityModule, ChartsModule],
   controllers: [ProfileController],
   providers: [
     ProfileService,

@@ -163,3 +163,57 @@ export const birthRecordResponseSchema = createBirthRecordRequestSchema.extend({
 
 export type CreateBirthRecordRequest = z.infer<typeof createBirthRecordRequestSchema>;
 export type BirthRecordResponse = z.infer<typeof birthRecordResponseSchema>;
+
+export const chartStatusSchema = z.enum(['CALCULATED', 'FAILED']);
+
+// 藏干条目：地支所藏天干及其五行、十神。
+const hiddenStemSchema = z.object({
+  stem: z.string(),
+  element: z.string(),
+  tenGod: z.string(),
+});
+
+// 完整柱信息：干支、五行、阴阳、藏干与十神。
+const pillarDetailSchema = z.object({
+  stem: z.string(),
+  branch: z.string(),
+  stemElement: z.string(),
+  branchElement: z.string(),
+  stemYinYang: z.string(),
+  branchYinYang: z.string(),
+  hiddenStems: z.array(hiddenStemSchema),
+  stemTenGod: z.string().nullable(),
+});
+
+const chartDataSchema = z.object({
+  year: pillarDetailSchema,
+  month: pillarDetailSchema,
+  day: pillarDetailSchema,
+  hour: pillarDetailSchema.nullable(),
+  relations: z.array(
+    z.object({
+      kind: z.string(),
+      positions: z.array(z.string()),
+    }),
+  ),
+});
+
+export const chartResponseSchema = z.object({
+  id: z.uuid(),
+  profileId: z.uuid(),
+  birthRecordId: z.uuid(),
+  engineVersion: z.string(),
+  calendarAdapter: z.string(),
+  calendarAdapterVersion: z.string(),
+  calculationPolicyVersion: z.string(),
+  status: chartStatusSchema,
+  yearPillar: z.string().nullable(),
+  monthPillar: z.string().nullable(),
+  dayPillar: z.string().nullable(),
+  hourPillar: z.string().nullable(),
+  chartData: chartDataSchema,
+  warnings: z.array(z.string()),
+  calculatedAt: z.iso.datetime(),
+});
+
+export type ChartResponse = z.infer<typeof chartResponseSchema>;

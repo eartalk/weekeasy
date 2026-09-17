@@ -57,6 +57,13 @@ enum DayBoundaryRule {
   @@map("day_boundary_rule")
 }
 
+enum ChartStatus {
+  CALCULATED
+  FAILED
+
+  @@map("chart_status")
+}
+
 enum ActorType {
   USER
   ADMIN
@@ -128,6 +135,7 @@ model Profile {
   owner              User?               @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
   guestSession       GuestSession?       @relation(fields: [anonymousId], references: [id], onDelete: Restrict)
   birthRecords       BirthRecord[]
+  natalCharts        NatalChart[]
 
   @@index([ownerUserId, deletedAt], map: "profiles_owner_user_id_deleted_at_idx")
   @@index([anonymousId, deletedAt], map: "profiles_anonymous_id_deleted_at_idx")
@@ -156,10 +164,38 @@ model BirthRecord {
   createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   supersededAt          DateTime?          @map("superseded_at") @db.Timestamptz(6)
   profile               Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  natalCharts           NatalChart[]
 
   @@unique([profileId, revision], map: "birth_records_profile_id_revision_key")
   @@index([profileId, createdAt(sort: Desc)], map: "birth_records_profile_id_created_at_idx")
   @@map("birth_records")
+}
+
+/// 排盘快照，记录创建后不可修改；引擎升级或规则配置变化时创建新记录。
+model NatalChart {
+  id                       String      @id @default(uuid(7)) @db.Uuid
+  profileId                String      @map("profile_id") @db.Uuid
+  birthRecordId            String      @map("birth_record_id") @db.Uuid
+  engineVersion            String      @map("engine_version")
+  calendarAdapter          String      @map("calendar_adapter")
+  calendarAdapterVersion   String      @map("calendar_adapter_version")
+  calculationPolicyVersion String      @map("calculation_policy_version")
+  status                   ChartStatus @default(CALCULATED)
+  yearPillar               String?     @map("year_pillar") @db.Char(2)
+  monthPillar              String?     @map("month_pillar") @db.Char(2)
+  dayPillar                String?     @map("day_pillar") @db.Char(2)
+  hourPillar               String?     @map("hour_pillar") @db.Char(2)
+  chartData                Json        @map("chart_data")
+  warnings                 Json        @map("warnings")
+  calculationHash          String      @map("calculation_hash")
+  calculatedAt             DateTime    @default(now()) @map("calculated_at") @db.Timestamptz(6)
+  profile                  Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  birthRecord              BirthRecord @relation(fields: [birthRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([calculationHash], map: "natal_charts_calculation_hash_key")
+  @@index([profileId, calculatedAt(sort: Desc)], map: "natal_charts_profile_id_calculated_at_idx")
+  @@index([birthRecordId, engineVersion], map: "natal_charts_birth_record_engine_idx")
+  @@map("natal_charts")
 }
 
 model AuditLog {

@@ -50,6 +50,9 @@ importers:
       '@weekeasy/api-contracts':
         specifier: workspace:*
         version: link:../../packages/api-contracts
+      '@weekeasy/bazi-core':
+        specifier: workspace:*
+        version: link:../../packages/bazi-core
       '@weekeasy/config':
         specifier: workspace:*
         version: link:../../packages/config
