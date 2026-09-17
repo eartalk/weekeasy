@@ -1,48 +1,66 @@
-import { Button } from '@weekeasy/ui';
+import Link from 'next/link';
 
 const steps = [
-  ['01', '建立档案', '用出生信息形成可追溯、带版本的基础结构。'],
-  ['02', '完成测评', '用简版 Big Five 记录此刻真实的自我观察。'],
-  ['03', '交叉理解', '看见一致、互补、冲突与仍需验证的部分。'],
+  ['一', '留下基础坐标', '昵称与出生信息只用于建立你的分析档案。'],
+  ['二', '完成真实自评', '用简版 Big Five 记录此刻的行为与感受。'],
+  ['三', '对照两种视角', '结论会展示依据、置信度与可以亲自验证的问题。'],
 ] as const;
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-8 sm:px-10">
-      <nav className="flex items-center justify-between border-b border-teal-950/10 pb-6">
-        <span className="text-lg font-bold tracking-tight">WeekEasy</span>
-        <span className="text-sm text-teal-950/60">传统视角 × 人格测评</span>
+    <main className="relative min-h-screen overflow-hidden px-5 pb-10 sm:px-10">
+      <div aria-hidden="true" className="paper-grid absolute inset-0 opacity-35" />
+      <div aria-hidden="true" className="seal-orbit -right-40 top-24 hidden lg:block" />
+
+      <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between border-b border-[var(--line)] py-6">
+        <Link className="brand-mark" href="/">
+          <span aria-hidden="true">易</span>
+          <strong>WeekEasy</strong>
+        </Link>
+        <p className="hidden text-sm tracking-[0.16em] text-[var(--ink-muted)] sm:block">
+          传统视角 × 人格测评 × 真实反馈
+        </p>
       </nav>
 
-      <section className="grid flex-1 items-center gap-16 py-20 lg:grid-cols-[1.15fr_0.85fr]">
-        <div>
-          <p className="mb-5 text-sm font-semibold tracking-[0.2em] text-teal-700">不预测命运，只增加理解</p>
-          <h1 className="max-w-3xl text-5xl leading-[1.06] font-semibold tracking-[-0.045em] text-balance sm:text-7xl">
-            多一种视角，<br />更诚实地理解自己。
+      <section className="relative z-10 mx-auto grid min-h-[calc(100vh-7rem)] max-w-7xl items-center gap-14 py-14 lg:grid-cols-[1.22fr_0.78fr] lg:py-20">
+        <div className="reveal-up">
+          <div className="mb-8 flex items-center gap-4 text-xs font-semibold tracking-[0.24em] text-[var(--cinnabar)]">
+            <span className="h-px w-10 bg-current" />
+            SELF KNOWLEDGE, NOT FATE
+          </div>
+          <h1 className="display-title max-w-4xl text-[clamp(3.5rem,8vw,7.8rem)] leading-[0.96] tracking-[-0.07em]">
+            换一个角度，
+            <span className="mt-3 block pl-[0.7em] text-[var(--jade)]">读懂自己。</span>
           </h1>
-          <p className="mt-8 max-w-xl text-lg leading-8 text-teal-950/65">
-            将传统八字结构与 Big Five 测评放在一起比较。结论附带证据、置信度和可验证问题，由你判断什么真正适合自己。
+          <p className="mt-10 max-w-2xl text-lg leading-8 text-[var(--ink-muted)] sm:text-xl sm:leading-9">
+            把传统八字结构与 Big Five 人格测评放在同一张桌上。我们提供证据和问题，不替你决定答案。
           </p>
-          <div className="mt-10 flex flex-wrap items-center gap-5">
-            <Button className="px-7 py-3.5">开始了解自己</Button>
-            <span className="text-sm text-teal-950/50">约 12 分钟 · 可先游客体验</span>
+          <div className="mt-11 flex flex-wrap items-center gap-5">
+            <Link className="primary-link group" href="/start">
+              开始了解自己
+              <span aria-hidden="true" className="transition-transform group-hover:translate-x-1">→</span>
+            </Link>
+            <span className="text-sm text-[var(--ink-soft)]">约 12 分钟 · 无需先注册</span>
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-white/80 bg-white/65 p-6 shadow-[0_30px_80px_-45px_rgba(15,78,69,0.5)] backdrop-blur sm:p-8">
-          <p className="mb-8 text-xs font-bold tracking-[0.18em] text-teal-700">HOW IT WORKS</p>
-          <ol className="space-y-7">
+        <aside className="reveal-up reveal-delay relative border-l border-[var(--line-strong)] pl-7 sm:pl-10">
+          <p className="mb-10 text-xs font-bold tracking-[0.22em] text-[var(--jade)]">理解如何发生</p>
+          <ol className="space-y-9">
             {steps.map(([number, title, description]) => (
-              <li className="grid grid-cols-[2.5rem_1fr] gap-4" key={number}>
-                <span className="font-mono text-sm text-teal-700">{number}</span>
-                <div>
-                  <h2 className="font-semibold">{title}</h2>
-                  <p className="mt-1 text-sm leading-6 text-teal-950/55">{description}</p>
+              <li className="group grid grid-cols-[2rem_1fr] gap-4" key={number}>
+                <span className="display-title text-2xl text-[var(--cinnabar)]">{number}</span>
+                <div className="border-b border-[var(--line)] pb-8">
+                  <h2 className="text-lg font-semibold tracking-[0.04em]">{title}</h2>
+                  <p className="mt-2 text-sm leading-7 text-[var(--ink-muted)]">{description}</p>
                 </div>
               </li>
             ))}
           </ol>
-        </div>
+          <p className="mt-8 text-xs leading-6 text-[var(--ink-soft)]">
+            传统文化解释不等同于科学诊断。所有结果都允许你质疑、修正和反馈。
+          </p>
+        </aside>
       </section>
     </main>
   );
