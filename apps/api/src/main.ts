@@ -10,6 +10,10 @@ async function bootstrap() {
   const config = app.get(ConfigService<ServerEnvironment, true>);
   const port = config.get('API_PORT', { infer: true });
 
+  app.enableCors({
+    origin: config.get('WEB_ORIGIN', { infer: true }),
+    credentials: true,
+  });
   app.setGlobalPrefix('api');
   app.enableVersioning({ defaultVersion: '1', type: VersioningType.URI });
   app.enableShutdownHooks();

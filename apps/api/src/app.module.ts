@@ -5,6 +5,8 @@ import { validateServerEnvironment } from '@weekeasy/config/environment';
 import { CacheModule } from './infrastructure/cache/cache.module.js';
 import { DatabaseModule } from './infrastructure/database/database.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { IdentityModule } from './modules/identity/identity.module.js';
+import { ProfilesModule } from './modules/profiles/profiles.module.js';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { HealthModule } from './modules/health/health.module.js';
     DatabaseModule,
     CacheModule,
     HealthModule,
+    IdentityModule,
+    ProfilesModule,
   ],
 })
 export class AppModule {}

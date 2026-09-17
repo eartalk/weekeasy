@@ -20,6 +20,7 @@ function buildConnectionUrl(
 export const serverEnvironmentSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    WEB_ORIGIN: z.url().default('http://localhost:3000'),
     API_PORT: portSchema.default(3001),
     DB_HOST: z.string().min(1),
     DB_PORT: portSchema.default(5432),
