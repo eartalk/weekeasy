@@ -1,0 +1,10 @@
+{
+  "extends": "@weekeasy/config/tsconfig.base.json",
+  "compilerOptions": {
+    "declaration": true,
+    "jsx": "react-jsx",
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

@@ -1,0 +1,34 @@
+{
+  "name": "weekeasy",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "build:web": "pnpm --filter @weekeasy/web build",
+    "build:api": "pnpm --filter @weekeasy/api build",
+    "build:worker": "pnpm --filter @weekeasy/worker build",
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter @weekeasy/web dev",
+    "dev:api": "pnpm --filter @weekeasy/api dev",
+    "dev:worker": "pnpm --filter @weekeasy/worker dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "@types/node": "^24.3.1",
+    "eslint": "^9.35.0",
+    "globals": "^16.3.0",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.42.0",
+    "vitest": "^3.2.4"
+  }
+}
