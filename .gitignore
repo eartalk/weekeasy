@@ -22,4 +22,4 @@ coverage/
 Thumbs.db
 
 # generated database files
-database/prisma/generated/
+database/src/generated/

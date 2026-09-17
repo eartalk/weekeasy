@@ -1,11 +1,14 @@
 import 'reflect-metadata';
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import type { ServerEnvironment } from '@weekeasy/config/environment';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const port = Number(process.env.API_PORT ?? 3001);
+  const config = app.get(ConfigService<ServerEnvironment, true>);
+  const port = config.get('API_PORT', { infer: true });
 
   app.setGlobalPrefix('api');
   app.enableVersioning({ defaultVersion: '1', type: VersioningType.URI });

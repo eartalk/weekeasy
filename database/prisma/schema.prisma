@@ -1,0 +1,180 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_DELETION
+
+  @@map("user_status")
+}
+
+enum ProfileRelationship {
+  SELF
+  PARTNER
+  FAMILY
+  FRIEND
+  OTHER
+
+  @@map("profile_relationship")
+}
+
+enum ProfileGender {
+  MALE
+  FEMALE
+  UNSPECIFIED
+
+  @@map("profile_gender")
+}
+
+enum CalendarType {
+  SOLAR
+  LUNAR
+
+  @@map("calendar_type")
+}
+
+enum BirthTimePrecision {
+  MINUTE
+  HOUR
+  UNKNOWN_HOUR
+
+  @@map("birth_time_precision")
+}
+
+enum DayBoundaryRule {
+  MIDNIGHT
+  LATE_ZI_HOUR
+
+  @@map("day_boundary_rule")
+}
+
+enum ActorType {
+  USER
+  ADMIN
+  SYSTEM
+
+  @@map("actor_type")
+}
+
+model User {
+  id                  String     @id @default(uuid(7)) @db.Uuid
+  email               String     @unique(map: "users_email_key")
+  emailVerifiedAt     DateTime?  @map("email_verified_at") @db.Timestamptz(6)
+  status              UserStatus @default(ACTIVE)
+  locale              String     @default("zh-CN")
+  timezone            String     @default("Asia/Shanghai")
+  lastLoginAt         DateTime?  @map("last_login_at") @db.Timestamptz(6)
+  deletionRequestedAt DateTime?  @map("deletion_requested_at") @db.Timestamptz(6)
+  createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sessions            Session[]
+  profiles            Profile[]
+  auditLogs           AuditLog[]
+
+  @@index([status, createdAt], map: "users_status_created_at_idx")
+  @@map("users")
+}
+
+model Session {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique(map: "sessions_token_hash_key") @map("token_hash")
+  userAgent String?   @map("user_agent")
+  ipHash    String?   @map("ip_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt], map: "sessions_user_id_expires_at_idx")
+  @@index([expiresAt], map: "sessions_expires_at_idx")
+  @@map("sessions")
+}
+
+model GuestSession {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  tokenHash  String    @unique(map: "guest_sessions_token_hash_key") @map("token_hash")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  profiles   Profile[]
+
+  @@index([expiresAt], map: "guest_sessions_expires_at_idx")
+  @@map("guest_sessions")
+}
+
+model Profile {
+  id                 String              @id @default(uuid(7)) @db.Uuid
+  ownerUserId        String?             @map("owner_user_id") @db.Uuid
+  anonymousId        String?             @map("anonymous_id") @db.Uuid
+  displayName        String              @map("display_name")
+  relationship       ProfileRelationship @default(SELF)
+  gender             ProfileGender       @default(UNSPECIFIED)
+  concernTopics      String[]            @default([]) @map("concern_topics")
+  consentConfirmedAt DateTime?           @map("consent_confirmed_at") @db.Timestamptz(6)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime?           @map("deleted_at") @db.Timestamptz(6)
+  owner              User?               @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  guestSession       GuestSession?       @relation(fields: [anonymousId], references: [id], onDelete: Restrict)
+  birthRecords       BirthRecord[]
+
+  @@index([ownerUserId, deletedAt], map: "profiles_owner_user_id_deleted_at_idx")
+  @@index([anonymousId, deletedAt], map: "profiles_anonymous_id_deleted_at_idx")
+  @@map("profiles")
+}
+
+model BirthRecord {
+  id                    String             @id @default(uuid(7)) @db.Uuid
+  profileId             String             @map("profile_id") @db.Uuid
+  revision              Int
+  calendarType          CalendarType       @map("calendar_type")
+  precision             BirthTimePrecision
+  localDate             DateTime           @map("local_date") @db.Date
+  localTime             DateTime?          @map("local_time") @db.Time(0)
+  timezoneId            String             @map("timezone_id")
+  utcOffsetMinutes      Int                @map("utc_offset_minutes") @db.SmallInt
+  countryCode           String?            @map("country_code") @db.Char(2)
+  regionName            String?            @map("region_name")
+  cityName              String?            @map("city_name")
+  latitude              Decimal?           @db.Decimal(9, 6)
+  longitude             Decimal?           @db.Decimal(9, 6)
+  useTrueSolarTime      Boolean            @default(false) @map("use_true_solar_time")
+  adjustedLocalDatetime DateTime?          @map("adjusted_local_datetime") @db.Timestamp(6)
+  dayBoundaryRule       DayBoundaryRule    @default(MIDNIGHT) @map("day_boundary_rule")
+  inputHash             String             @map("input_hash")
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  supersededAt          DateTime?          @map("superseded_at") @db.Timestamptz(6)
+  profile               Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, revision], map: "birth_records_profile_id_revision_key")
+  @@index([profileId, createdAt(sort: Desc)], map: "birth_records_profile_id_created_at_idx")
+  @@map("birth_records")
+}
+
+model AuditLog {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  actorUserId  String?   @map("actor_user_id") @db.Uuid
+  actorType    ActorType @map("actor_type")
+  action       String
+  resourceType String    @map("resource_type")
+  resourceId   String?   @map("resource_id") @db.Uuid
+  metadata     Json      @default("{}")
+  ipHash       String?   @map("ip_hash")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor        User?     @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt(sort: Desc)], map: "audit_logs_actor_user_id_created_at_idx")
+  @@index([resourceType, resourceId, createdAt(sort: Desc)], map: "audit_logs_resource_created_at_idx")
+  @@map("audit_logs")
+}
