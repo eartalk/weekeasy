@@ -5,17 +5,46 @@ import {
   resolveBirthInstant,
 } from '@weekeasy/bazi-calendar';
 import type { PillarIndices } from '@weekeasy/bazi-calendar';
-import { branchFromIndex, stemFromIndex } from './stem-branch.js';
-import type { ChartCalculationInput, NatalChart, Pillar } from './types.js';
+import { branchFromIndex, stemFromIndex, type HeavenlyStem } from './stem-branch.js';
+import { branchElement, branchYinYang, stemElement, stemYinYang } from './elements.js';
+import { hiddenStemsOf } from './hidden-stems.js';
+import { tenGod } from './ten-gods.js';
+import { computeBranchRelations, type PositionedBranch } from './relations.js';
+import type {
+  ChartCalculationInput,
+  HiddenStem,
+  NatalChart,
+  PillarDetail,
+} from './types.js';
 
-export const ENGINE_VERSION = '0.1.0';
+export const ENGINE_VERSION = '0.2.0';
 export const CALCULATION_POLICY_VERSION = '0.1.0';
 
-function pillarFromIndices(indices: PillarIndices): Pillar {
-  return { stem: stemFromIndex(indices.stem), branch: branchFromIndex(indices.branch) };
+function toPillarDetail(
+  indices: PillarIndices,
+  dayStem: HeavenlyStem,
+  isDayMaster: boolean,
+): PillarDetail {
+  const stem = stemFromIndex(indices.stem);
+  const branch = branchFromIndex(indices.branch);
+  const hiddenStems: readonly HiddenStem[] = hiddenStemsOf(branch).map((hidden) => ({
+    stem: hidden,
+    element: stemElement(hidden),
+    tenGod: tenGod(dayStem, hidden),
+  }));
+  return {
+    stem,
+    branch,
+    stemElement: stemElement(stem),
+    branchElement: branchElement(branch),
+    stemYinYang: stemYinYang(stem),
+    branchYinYang: branchYinYang(branch),
+    hiddenStems,
+    stemTenGod: isDayMaster ? null : tenGod(dayStem, stem),
+  };
 }
 
-// 确定性的基础排盘：给定出生输入，产出四柱命盘与边界警告。
+// 确定性的基础排盘：给定出生输入，产出四柱命盘（含藏干、五行、十神、刑冲合害）与边界警告。
 export function calculateNatalChart(input: ChartCalculationInput): NatalChart {
   const resolved = resolveBirthInstant({
     calendarType: input.calendarType,
@@ -42,11 +71,25 @@ export function calculateNatalChart(input: ChartCalculationInput): NatalChart {
     );
   }
 
+  const dayStem = stemFromIndex(pillars.day.stem);
+  const year = toPillarDetail(pillars.year, dayStem, false);
+  const month = toPillarDetail(pillars.month, dayStem, false);
+  const day = toPillarDetail(pillars.day, dayStem, true);
+  const hour = pillars.hour ? toPillarDetail(pillars.hour, dayStem, false) : null;
+
+  const positionedBranches: readonly (PositionedBranch | null)[] = [
+    { position: 'year', branch: year.branch },
+    { position: 'month', branch: month.branch },
+    { position: 'day', branch: day.branch },
+    hour ? { position: 'hour', branch: hour.branch } : null,
+  ];
+
   return {
-    year: pillarFromIndices(pillars.year),
-    month: pillarFromIndices(pillars.month),
-    day: pillarFromIndices(pillars.day),
-    hour: pillars.hour ? pillarFromIndices(pillars.hour) : null,
+    year,
+    month,
+    day,
+    hour,
+    relations: computeBranchRelations(positionedBranches),
     engineVersion: ENGINE_VERSION,
     warnings,
   };

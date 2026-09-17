@@ -59,7 +59,35 @@ describe('calculateNatalChart', () => {
 
   it('引擎版本与版本信息已注入', () => {
     const c = chart({});
-    expect(c.engineVersion).toBe('0.1.0');
+    expect(c.engineVersion).toBe('0.2.0');
     expect(c.warnings).toEqual([]);
+  });
+
+  it('产出藏干、五行与十神（2000-01-01 00:30，日主戊）', () => {
+    const c = chart({ localTime: '00:30' });
+    // 日主为日柱天干，十神为 null。
+    expect(c.day.stemTenGod).toBeNull();
+    expect(c.year.stemTenGod).toBe('劫财');
+    expect(c.month.stemTenGod).toBe('偏印');
+    expect(c.hour!.stemTenGod).toBe('偏财');
+
+    // 年支卯藏乙，乙克戊（克我、异阴阳）→ 正官。
+    expect(c.year.hiddenStems).toEqual([
+      { stem: '乙', element: '木', tenGod: '正官' },
+    ]);
+    // 月支子藏癸，戊克癸（我克、异阴阳）→ 正财。
+    expect(c.month.hiddenStems).toEqual([
+      { stem: '癸', element: '水', tenGod: '正财' },
+    ]);
+    // 日支午藏丁、己。
+    expect(c.day.hiddenStems).toEqual([
+      { stem: '丁', element: '火', tenGod: '正印' },
+      { stem: '己', element: '土', tenGod: '劫财' },
+    ]);
+
+    // 卯-子-午-子：子午相冲、子卯相刑。
+    expect(c.relations).toContainEqual({ kind: 'clash', positions: ['month', 'day'] });
+    expect(c.relations).toContainEqual({ kind: 'clash', positions: ['day', 'hour'] });
+    expect(c.relations).toContainEqual({ kind: 'punishment', positions: ['year', 'month'] });
   });
 });

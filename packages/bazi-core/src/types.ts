@@ -1,4 +1,7 @@
 import type { EarthlyBranch, HeavenlyStem } from './stem-branch.js';
+import type { FiveElement, YinYang } from './elements.js';
+import type { TenGod } from './ten-gods.js';
+import type { PillarRelation } from './relations.js';
 
 export interface Pillar {
   readonly stem: HeavenlyStem;
@@ -23,12 +26,31 @@ export interface ChartCalculationInput {
   readonly dayBoundaryRule: DayBoundaryRule;
 }
 
-// 基础命盘：仅四柱与元数据；藏干/十神/五行/刑冲合害留待后续扩展。
+// 藏干条目：地支所藏天干及其五行、相对日主的十神。
+export interface HiddenStem {
+  readonly stem: HeavenlyStem;
+  readonly element: FiveElement;
+  readonly tenGod: TenGod;
+}
+
+// 完整柱信息：在干支之上补充五行、阴阳、藏干与十神。
+export interface PillarDetail extends Pillar {
+  readonly stemElement: FiveElement;
+  readonly branchElement: FiveElement;
+  readonly stemYinYang: YinYang;
+  readonly branchYinYang: YinYang;
+  readonly hiddenStems: readonly HiddenStem[];
+  // 该柱天干相对日主的十神；日柱天干即日主，值为 null。
+  readonly stemTenGod: TenGod | null;
+}
+
+// 完整命盘：四柱 + 刑冲合害关系 + 元数据。
 export interface NatalChart {
-  readonly year: Pillar;
-  readonly month: Pillar;
-  readonly day: Pillar;
-  readonly hour: Pillar | null;
+  readonly year: PillarDetail;
+  readonly month: PillarDetail;
+  readonly day: PillarDetail;
+  readonly hour: PillarDetail | null;
+  readonly relations: readonly PillarRelation[];
   readonly engineVersion: string;
   readonly warnings: readonly string[];
 }
