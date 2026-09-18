@@ -82,6 +82,7 @@ export function ChartResult({ profileId }: { readonly profileId: string }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-3 print:hidden">
+          <Link className="primary-link" href={`/assessments/${profileId}`}>开始人格测评 <span aria-hidden="true">→</span></Link>
           <button className="secondary-action" onClick={() => window.print()} type="button">打印留存</button>
           <Link className="secondary-action" href="/start">重新建档</Link>
         </div>
