@@ -27,17 +27,18 @@ export class BirthRecordService {
     profileId: string,
     input: CreateBirthRecordRequest,
   ): Promise<BirthRecordResponse> {
+    const inputHash = this.hashInput(input);
+    const chart = this.charts.prepare(input);
     const record = await this.repository.createVersion({
       guestSessionId,
       profileId,
       birthRecord: input,
-      inputHash: this.hashInput(input),
+      inputHash,
+      chart,
     });
     if (!record) {
       throw this.notFound();
     }
-    // 出生记录创建后确定性生成命盘快照；失败会向上抛出，可重试。
-    await this.charts.generateAndSave(profileId, record.id, input);
     return record;
   }
 

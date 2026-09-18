@@ -3,10 +3,10 @@ import { resolveBirthInstant, type BirthInstantInput } from './birth-instant.js'
 
 const base: BirthInstantInput = {
   calendarType: 'SOLAR',
+  isLeapMonth: false,
   localDate: '2000-01-01',
   localTime: '12:30',
   timezoneId: 'Asia/Shanghai',
-  utcOffsetMinutes: 480,
   latitude: null,
   longitude: null,
   useTrueSolarTime: false,
@@ -36,6 +36,29 @@ describe('resolveBirthInstant', () => {
       localTime: '12:00',
     });
     expect(r.chartLocalDateTime).toEqual({ year: 2000, month: 2, day: 5, hour: 12, minute: 0 });
+  });
+
+  it('支持农历三十和闰月输入', () => {
+    const regular = resolveBirthInstant({ ...base, calendarType: 'LUNAR', localDate: '2023-02-30' });
+    const leap = resolveBirthInstant({ ...base, calendarType: 'LUNAR', isLeapMonth: true, localDate: '2023-02-01' });
+    expect(regular.chartLocalDateTime).toMatchObject({ year: 2023, month: 3, day: 21 });
+    expect(leap.chartLocalDateTime).toMatchObject({ year: 2023, month: 3, day: 22 });
+  });
+
+  it('根据 IANA 时区推导历史 UTC 偏移', () => {
+    const summer = resolveBirthInstant({ ...base, timezoneId: 'America/New_York', localDate: '2024-07-01' });
+    const winter = resolveBirthInstant({ ...base, timezoneId: 'America/New_York', localDate: '2024-01-01' });
+    expect(summer.utcOffsetMinutes).toBe(-240);
+    expect(winter.utcOffsetMinutes).toBe(-300);
+  });
+
+  it('拒绝夏令时跳时区间内不存在的当地时间', () => {
+    expect(() => resolveBirthInstant({
+      ...base,
+      timezoneId: 'America/New_York',
+      localDate: '2024-03-10',
+      localTime: '02:30',
+    })).toThrow(/CHART_INVALID_LOCAL_TIME/);
   });
 
   it('真太阳时修正改变当地时刻', () => {

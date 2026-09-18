@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { ChartResponse } from '@weekeasy/api-contracts';
 import type { Prisma } from '@weekeasy/database';
 import { DatabaseService } from '../../../infrastructure/database/database.service.js';
-import type { ChartRepository, SaveChartInput } from '../application/chart.repository.js';
+import type { ChartRepository } from '../application/chart.repository.js';
 
 const chartSelection = {
   id: true,
@@ -64,37 +64,6 @@ function toResponse(chart: SelectedChart): ChartResponse {
 @Injectable()
 export class PrismaChartRepository implements ChartRepository {
   constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
-
-  async save(input: SaveChartInput): Promise<ChartResponse> {
-    // 相同计算先查已有快照，避免重复写入并保持幂等。
-    const existing = await this.database.client.natalChart.findUnique({
-      where: { calculationHash: input.calculationHash },
-      select: chartSelection,
-    });
-    if (existing) {
-      return toResponse(existing);
-    }
-
-    const chart = await this.database.client.natalChart.create({
-      data: {
-        profileId: input.profileId,
-        birthRecordId: input.birthRecordId,
-        engineVersion: input.engineVersion,
-        calendarAdapter: input.calendarAdapter,
-        calendarAdapterVersion: input.calendarAdapterVersion,
-        calculationPolicyVersion: input.calculationPolicyVersion,
-        yearPillar: input.yearPillar,
-        monthPillar: input.monthPillar,
-        dayPillar: input.dayPillar,
-        hourPillar: input.hourPillar,
-        chartData: input.chartData as Prisma.InputJsonValue,
-        warnings: [...input.warnings] as Prisma.InputJsonValue,
-        calculationHash: input.calculationHash,
-      },
-      select: chartSelection,
-    });
-    return toResponse(chart);
-  }
 
   async findLatestOwned(guestSessionId: string, profileId: string): Promise<ChartResponse | null> {
     const chart = await this.database.client.natalChart.findFirst({

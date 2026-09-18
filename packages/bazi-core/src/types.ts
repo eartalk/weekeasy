@@ -15,11 +15,11 @@ export type DayBoundaryRule = 'MIDNIGHT' | 'LATE_ZI_HOUR';
 // 排盘引擎输入，与出生记录字段一一对应，保持无框架依赖。
 export interface ChartCalculationInput {
   readonly calendarType: CalendarType;
+  readonly isLeapMonth: boolean;
   readonly precision: BirthTimePrecision;
   readonly localDate: string; // YYYY-MM-DD
   readonly localTime: string | null; // HH:mm，未知时辰为 null
   readonly timezoneId: string; // IANA 时区
-  readonly utcOffsetMinutes: number;
   readonly latitude: number | null;
   readonly longitude: number | null;
   readonly useTrueSolarTime: boolean;
@@ -51,6 +51,8 @@ export interface NatalChart {
   readonly day: PillarDetail;
   readonly hour: PillarDetail | null;
   readonly relations: readonly PillarRelation[];
+  readonly utcOffsetMinutes: number;
+  readonly adjustedLocalDatetime: string | null;
   readonly engineVersion: string;
   readonly warnings: readonly string[];
 }

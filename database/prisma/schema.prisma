@@ -147,8 +147,9 @@ model BirthRecord {
   profileId             String             @map("profile_id") @db.Uuid
   revision              Int
   calendarType          CalendarType       @map("calendar_type")
+  isLeapMonth           Boolean            @default(false) @map("is_leap_month")
   precision             BirthTimePrecision
-  localDate             DateTime           @map("local_date") @db.Date
+  localDate             String             @map("local_date")
   localTime             DateTime?          @map("local_time") @db.Time(0)
   timezoneId            String             @map("timezone_id")
   utcOffsetMinutes      Int                @map("utc_offset_minutes") @db.SmallInt

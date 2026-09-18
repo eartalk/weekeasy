@@ -2,9 +2,7 @@ import type { ChartResponse } from '@weekeasy/api-contracts';
 
 export const CHART_REPOSITORY = Symbol('CHART_REPOSITORY');
 
-export interface SaveChartInput {
-  profileId: string;
-  birthRecordId: string;
+export interface CalculatedChartSnapshot {
   engineVersion: string;
   calendarAdapter: string;
   calendarAdapterVersion: string;
@@ -15,10 +13,10 @@ export interface SaveChartInput {
   hourPillar: string | null;
   chartData: unknown;
   warnings: readonly string[];
-  calculationHash: string;
+  utcOffsetMinutes: number;
+  adjustedLocalDatetime: string | null;
 }
 
 export interface ChartRepository {
-  save(input: SaveChartInput): Promise<ChartResponse>;
   findLatestOwned(guestSessionId: string, profileId: string): Promise<ChartResponse | null>;
 }

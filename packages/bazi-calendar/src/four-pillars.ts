@@ -40,18 +40,21 @@ export function computeFourPillarIndices(
   dayBoundaryRule: DayBoundaryRule,
 ): FourPillarIndices {
   const { year, month, day, hour, minute } = resolved.chartLocalDateTime;
-  const solar = Solar.fromYmdHms(year, month, day, hour, minute, 0);
-  const eightChar = solar.getLunar().getEightChar();
+  const localEightChar = Solar.fromYmdHms(year, month, day, hour, minute, 0).getLunar().getEightChar();
+  const reference = resolved.solarTermDateTime;
+  const solarTermEightChar = Solar.fromYmdHms(
+    reference.year, reference.month, reference.day, reference.hour, reference.minute, 0,
+  ).getLunar().getEightChar();
   // 换日策略映射：MIDNIGHT（午夜换日，晚子时算当天）→ sect 2；
   // LATE_ZI_HOUR（晚子时换日，23:00 起算次日）→ sect 1。
-  eightChar.setSect(dayBoundaryRule === 'LATE_ZI_HOUR' ? 1 : 2);
+  localEightChar.setSect(dayBoundaryRule === 'LATE_ZI_HOUR' ? 1 : 2);
 
   return {
-    year: { stem: ganIndex(eightChar.getYearGan()), branch: zhiIndex(eightChar.getYearZhi()) },
-    month: { stem: ganIndex(eightChar.getMonthGan()), branch: zhiIndex(eightChar.getMonthZhi()) },
-    day: { stem: ganIndex(eightChar.getDayGan()), branch: zhiIndex(eightChar.getDayZhi()) },
+    year: { stem: ganIndex(solarTermEightChar.getYearGan()), branch: zhiIndex(solarTermEightChar.getYearZhi()) },
+    month: { stem: ganIndex(solarTermEightChar.getMonthGan()), branch: zhiIndex(solarTermEightChar.getMonthZhi()) },
+    day: { stem: ganIndex(localEightChar.getDayGan()), branch: zhiIndex(localEightChar.getDayZhi()) },
     hour: resolved.isTimeKnown
-      ? { stem: ganIndex(eightChar.getTimeGan()), branch: zhiIndex(eightChar.getTimeZhi()) }
+      ? { stem: ganIndex(localEightChar.getTimeGan()), branch: zhiIndex(localEightChar.getTimeZhi()) }
       : null,
   };
 }

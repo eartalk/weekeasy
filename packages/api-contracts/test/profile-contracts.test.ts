@@ -24,15 +24,24 @@ describe('profile contracts', () => {
 describe('birth record contracts', () => {
   const validInput = {
     calendarType: 'SOLAR',
+    isLeapMonth: false,
     precision: 'MINUTE',
     localDate: '1990-06-15',
     localTime: '08:30',
     timezoneId: 'Asia/Shanghai',
-    utcOffsetMinutes: 480,
   } as const;
 
   it('accepts a complete minute-precision input', () => {
     expect(createBirthRecordRequestSchema.safeParse(validInput).success).toBe(true);
+  });
+
+  it('接受农历二月三十并拒绝公历闰月标记', () => {
+    expect(createBirthRecordRequestSchema.safeParse({
+      ...validInput,
+      calendarType: 'LUNAR',
+      localDate: '2023-02-30',
+    }).success).toBe(true);
+    expect(createBirthRecordRequestSchema.safeParse({ ...validInput, isLeapMonth: true }).success).toBe(false);
   });
 
   const invalidCases: Array<[Record<string, unknown>, string]> = [

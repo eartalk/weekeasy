@@ -8,11 +8,11 @@ import { formatPillar, type ChartCalculationInput } from './types.js';
 
 const base: ChartCalculationInput = {
   calendarType: 'SOLAR',
+  isLeapMonth: false,
   precision: 'MINUTE',
   localDate: '2000-01-01',
   localTime: '12:00',
   timezoneId: 'Asia/Shanghai',
-  utcOffsetMinutes: 480,
   latitude: null,
   longitude: null,
   useTrueSolarTime: false,

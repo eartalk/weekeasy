@@ -1,6 +1,11 @@
+import { createHmac } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { BirthRecordResponse, CreateBirthRecordRequest } from '@weekeasy/api-contracts';
+import type { Prisma } from '@weekeasy/database';
 import { DatabaseService } from '../../../infrastructure/database/database.service.js';
+import type { ServerEnvironment } from '@weekeasy/config/environment';
+import type { CalculatedChartSnapshot } from '../../charts/application/chart.repository.js';
 import type { BirthRecordRepository } from '../application/birth-record.repository.js';
 
 const birthRecordSelection = {
@@ -8,6 +13,7 @@ const birthRecordSelection = {
   profileId: true,
   revision: true,
   calendarType: true,
+  isLeapMonth: true,
   precision: true,
   localDate: true,
   localTime: true,
@@ -34,8 +40,9 @@ type SelectedBirthRecord = {
   profileId: string;
   revision: number;
   calendarType: BirthRecordResponse['calendarType'];
+  isLeapMonth: boolean;
   precision: BirthRecordResponse['precision'];
-  localDate: Date;
+  localDate: string;
   localTime: Date | null;
   timezoneId: string;
   utcOffsetMinutes: number;
@@ -57,8 +64,9 @@ function toResponse(record: SelectedBirthRecord): BirthRecordResponse {
     profileId: record.profileId,
     revision: record.revision,
     calendarType: record.calendarType,
+    isLeapMonth: record.isLeapMonth,
     precision: record.precision,
-    localDate: record.localDate.toISOString().slice(0, 10),
+    localDate: record.localDate,
     localTime: record.localTime?.toISOString().slice(11, 16) ?? null,
     timezoneId: record.timezoneId,
     utcOffsetMinutes: record.utcOffsetMinutes,
@@ -68,7 +76,7 @@ function toResponse(record: SelectedBirthRecord): BirthRecordResponse {
     latitude: record.latitude === null ? null : Number(record.latitude.toString()),
     longitude: record.longitude === null ? null : Number(record.longitude.toString()),
     useTrueSolarTime: record.useTrueSolarTime,
-    adjustedLocalDatetime: record.adjustedLocalDatetime?.toISOString() ?? null,
+    adjustedLocalDatetime: record.adjustedLocalDatetime?.toISOString().slice(0, 19) ?? null,
     dayBoundaryRule: record.dayBoundaryRule,
     createdAt: record.createdAt.toISOString(),
     supersededAt: record.supersededAt?.toISOString() ?? null,
@@ -84,13 +92,21 @@ function isRetryableTransactionError(error: unknown): boolean {
 
 @Injectable()
 export class PrismaBirthRecordRepository implements BirthRecordRepository {
-  constructor(@Inject(DatabaseService) private readonly database: DatabaseService) {}
+  private readonly hashSecret: string;
+
+  constructor(
+    @Inject(DatabaseService) private readonly database: DatabaseService,
+    @Inject(ConfigService) config: ConfigService<ServerEnvironment, true>,
+  ) {
+    this.hashSecret = config.get('DATA_HASH_SECRET', { infer: true });
+  }
 
   async createVersion(input: {
     guestSessionId: string;
     profileId: string;
     birthRecord: CreateBirthRecordRequest;
     inputHash: string;
+    chart: CalculatedChartSnapshot;
   }): Promise<BirthRecordResponse | null> {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
@@ -125,6 +141,7 @@ export class PrismaBirthRecordRepository implements BirthRecordRepository {
     profileId: string;
     birthRecord: CreateBirthRecordRequest;
     inputHash: string;
+    chart: CalculatedChartSnapshot;
   }): Promise<SelectedBirthRecord | null> {
     return this.database.client.$transaction(
       async (transaction) => {
@@ -154,31 +171,63 @@ export class PrismaBirthRecordRepository implements BirthRecordRepository {
         }
 
         const birthRecord = input.birthRecord;
-        return transaction.birthRecord.create({
+        const created = await transaction.birthRecord.create({
           data: {
             profileId: input.profileId,
             revision: (previous?.revision ?? 0) + 1,
             calendarType: birthRecord.calendarType,
+            isLeapMonth: birthRecord.isLeapMonth,
             precision: birthRecord.precision,
-            localDate: new Date(`${birthRecord.localDate}T00:00:00.000Z`),
+            localDate: birthRecord.localDate,
             localTime:
               birthRecord.localTime === null
                 ? null
                 : new Date(`1970-01-01T${birthRecord.localTime}:00.000Z`),
             timezoneId: birthRecord.timezoneId,
-            utcOffsetMinutes: birthRecord.utcOffsetMinutes,
+            utcOffsetMinutes: input.chart.utcOffsetMinutes,
             countryCode: birthRecord.countryCode,
             regionName: birthRecord.regionName,
             cityName: birthRecord.cityName,
             latitude: birthRecord.latitude,
             longitude: birthRecord.longitude,
             useTrueSolarTime: birthRecord.useTrueSolarTime,
-            adjustedLocalDatetime: null,
+            adjustedLocalDatetime: input.chart.adjustedLocalDatetime === null
+              ? null
+              : new Date(`${input.chart.adjustedLocalDatetime}.000Z`),
             dayBoundaryRule: birthRecord.dayBoundaryRule,
             inputHash: input.inputHash,
           },
           select: birthRecordSelection,
         });
+
+        const chart = input.chart;
+        const calculationHash = createHmac('sha256', this.hashSecret)
+          .update(JSON.stringify({
+            birthRecordId: created.id,
+            inputHash: input.inputHash,
+            engineVersion: chart.engineVersion,
+            calendarAdapterVersion: chart.calendarAdapterVersion,
+            calculationPolicyVersion: chart.calculationPolicyVersion,
+          }))
+          .digest('hex');
+        await transaction.natalChart.create({
+          data: {
+            profileId: input.profileId,
+            birthRecordId: created.id,
+            engineVersion: chart.engineVersion,
+            calendarAdapter: chart.calendarAdapter,
+            calendarAdapterVersion: chart.calendarAdapterVersion,
+            calculationPolicyVersion: chart.calculationPolicyVersion,
+            yearPillar: chart.yearPillar,
+            monthPillar: chart.monthPillar,
+            dayPillar: chart.dayPillar,
+            hourPillar: chart.hourPillar,
+            chartData: chart.chartData as Prisma.InputJsonValue,
+            warnings: [...chart.warnings] as Prisma.InputJsonValue,
+            calculationHash,
+          },
+        });
+        return created;
       },
       { isolationLevel: 'Serializable' },
     );

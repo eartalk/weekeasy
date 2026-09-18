@@ -70,22 +70,19 @@ export const calendarTypeSchema = z.enum(['SOLAR', 'LUNAR']);
 export const birthTimePrecisionSchema = z.enum(['MINUTE', 'HOUR', 'UNKNOWN_HOUR']);
 export const dayBoundaryRuleSchema = z.enum(['MIDNIGHT', 'LATE_ZI_HOUR']);
 
-const localDateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine(
-    (value) => {
-      const [year, month, day] = value.split('-').map(Number);
-      const parsed = new Date(Date.UTC(year ?? 0, (month ?? 0) - 1, day));
-      return (
-        parsed.getUTCFullYear() === year &&
-        parsed.getUTCMonth() + 1 === month &&
-        parsed.getUTCDate() === day
-      );
-    },
-    { message: '日期不合法' },
-  );
+const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '日期格式必须为 YYYY-MM-DD');
 const localTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
+function isValidSolarDate(value: string): boolean {
+  const [year, month, day] = value.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year ?? 0, (month ?? 0) - 1, day));
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() + 1 === month && parsed.getUTCDate() === day;
+}
+
+function isValidLunarDateShape(value: string): boolean {
+  const [, month, day] = value.split('-').map(Number);
+  return month !== undefined && day !== undefined && month >= 1 && month <= 12 && day >= 1 && day <= 30;
+}
 
 function isIanaTimezone(value: string): boolean {
   try {
@@ -99,13 +96,13 @@ function isIanaTimezone(value: string): boolean {
 export const createBirthRecordRequestSchema = z
   .object({
     calendarType: calendarTypeSchema,
+    isLeapMonth: z.boolean().default(false),
     precision: birthTimePrecisionSchema,
     localDate: localDateSchema,
     localTime: localTimeSchema.nullable(),
     timezoneId: z.string().trim().min(1).max(100).refine(isIanaTimezone, {
       message: '时区必须是有效的 IANA 时区标识',
     }),
-    utcOffsetMinutes: z.number().int().min(-840).max(840),
     countryCode: z.string().trim().length(2).toUpperCase().nullable().default(null),
     regionName: z.string().trim().min(1).max(100).nullable().default(null),
     cityName: z.string().trim().min(1).max(100).nullable().default(null),
@@ -115,6 +112,15 @@ export const createBirthRecordRequestSchema = z
     dayBoundaryRule: dayBoundaryRuleSchema.default('MIDNIGHT'),
   })
   .superRefine((input, context) => {
+    const validDate = input.calendarType === 'SOLAR'
+      ? isValidSolarDate(input.localDate)
+      : isValidLunarDateShape(input.localDate);
+    if (!validDate) {
+      context.addIssue({ code: 'custom', message: '日期不合法', path: ['localDate'] });
+    }
+    if (input.calendarType === 'SOLAR' && input.isLeapMonth) {
+      context.addIssue({ code: 'custom', message: '公历不能标记为闰月', path: ['isLeapMonth'] });
+    }
     if (input.precision === 'UNKNOWN_HOUR' && input.localTime !== null) {
       context.addIssue({
         code: 'custom',
@@ -156,7 +162,9 @@ export const birthRecordResponseSchema = createBirthRecordRequestSchema.extend({
   id: z.uuid(),
   profileId: z.uuid(),
   revision: z.number().int().positive(),
-  adjustedLocalDatetime: z.iso.datetime().nullable(),
+  utcOffsetMinutes: z.number().int().min(-840).max(840),
+  // 真太阳时修正后的当地墙上时间，不附加虚假的 UTC 标记。
+  adjustedLocalDatetime: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/).nullable(),
   createdAt: z.iso.datetime(),
   supersededAt: z.iso.datetime().nullable(),
 });

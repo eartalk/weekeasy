@@ -4,11 +4,11 @@ import { formatPillar, type ChartCalculationInput } from './types.js';
 
 const base: ChartCalculationInput = {
   calendarType: 'SOLAR',
+  isLeapMonth: false,
   precision: 'MINUTE',
   localDate: '2000-01-01',
   localTime: '12:00',
   timezoneId: 'Asia/Shanghai',
-  utcOffsetMinutes: 480,
   latitude: null,
   longitude: null,
   useTrueSolarTime: false,
@@ -55,12 +55,23 @@ describe('calculateNatalChart', () => {
       longitude: 104.07,
     });
     expect(formatPillar(c.hour!)).toBe('辛巳');
+    expect(c.adjustedLocalDatetime).not.toBeNull();
   });
 
   it('引擎版本与版本信息已注入', () => {
     const c = chart({});
-    expect(c.engineVersion).toBe('0.2.0');
+    expect(c.engineVersion).toBe('0.3.0');
     expect(c.warnings).toEqual([]);
+  });
+
+  it('跨时区节气边界按同一绝对时刻判定年柱和月柱', () => {
+    const shanghai = chart({ localDate: '2000-02-04', localTime: '20:00', timezoneId: 'Asia/Shanghai' });
+    const newYork = chart({ localDate: '2000-02-04', localTime: '20:00', timezoneId: 'America/New_York' });
+    expect([shanghai.year.stem, shanghai.year.branch, shanghai.month.branch]).not.toEqual([
+      newYork.year.stem,
+      newYork.year.branch,
+      newYork.month.branch,
+    ]);
   });
 
   it('产出藏干、五行与十神（2000-01-01 00:30，日主戊）', () => {

@@ -1,4 +1,10 @@
-export { assertIanaTimeZone, toUtcInstant, type LocalDateTime } from './time-zone.js';
+export {
+  assertIanaTimeZone,
+  resolveZonedDateTime,
+  toZonedLocalDateTime,
+  type LocalDateTime,
+  type ResolvedZonedDateTime,
+} from './time-zone.js';
 export {
   equationOfTimeMinutes,
   trueSolarTimeOffsetMinutes,

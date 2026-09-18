@@ -17,8 +17,19 @@ import type {
   PillarDetail,
 } from './types.js';
 
-export const ENGINE_VERSION = '0.2.0';
-export const CALCULATION_POLICY_VERSION = '0.1.0';
+export const ENGINE_VERSION = '0.3.0';
+export const CALCULATION_POLICY_VERSION = '0.2.0';
+
+function localDateTimeSnapshot(value: {
+  readonly year: number;
+  readonly month: number;
+  readonly day: number;
+  readonly hour: number;
+  readonly minute: number;
+}): string {
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${value.year}-${pad(value.month)}-${pad(value.day)}T${pad(value.hour)}:${pad(value.minute)}:00`;
+}
 
 function toPillarDetail(
   indices: PillarIndices,
@@ -48,10 +59,10 @@ function toPillarDetail(
 export function calculateNatalChart(input: ChartCalculationInput): NatalChart {
   const resolved = resolveBirthInstant({
     calendarType: input.calendarType,
+    isLeapMonth: input.isLeapMonth,
     localDate: input.localDate,
     localTime: input.localTime,
     timezoneId: input.timezoneId,
-    utcOffsetMinutes: input.utcOffsetMinutes,
     latitude: input.latitude,
     longitude: input.longitude,
     useTrueSolarTime: input.useTrueSolarTime,
@@ -90,6 +101,10 @@ export function calculateNatalChart(input: ChartCalculationInput): NatalChart {
     day,
     hour,
     relations: computeBranchRelations(positionedBranches),
+    utcOffsetMinutes: resolved.utcOffsetMinutes,
+    adjustedLocalDatetime: input.useTrueSolarTime
+      ? localDateTimeSnapshot(resolved.chartLocalDateTime)
+      : null,
     engineVersion: ENGINE_VERSION,
     warnings,
   };

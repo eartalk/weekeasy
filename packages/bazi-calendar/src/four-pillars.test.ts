@@ -6,10 +6,10 @@ function resolve(localDate: string, localTime: string | null, dayBoundaryRule: '
   return computeFourPillarIndices(
     resolveBirthInstant({
       calendarType: 'SOLAR',
+      isLeapMonth: false,
       localDate,
       localTime,
       timezoneId: 'Asia/Shanghai',
-      utcOffsetMinutes: 480,
       latitude: null,
       longitude: null,
       useTrueSolarTime: false,
