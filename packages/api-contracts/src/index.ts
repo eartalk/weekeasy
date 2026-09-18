@@ -225,3 +225,94 @@ export const chartResponseSchema = z.object({
 });
 
 export type ChartResponse = z.infer<typeof chartResponseSchema>;
+
+export const bigFiveDimensionSchema = z.enum([
+  'OPENNESS',
+  'CONSCIENTIOUSNESS',
+  'EXTRAVERSION',
+  'AGREEABLENESS',
+  'NEUROTICISM',
+]);
+
+export const assessmentQuestionSchema = z.object({
+  id: z.uuid(),
+  code: z.string(),
+  position: z.number().int().positive(),
+  prompt: z.string(),
+});
+
+export const assessmentDefinitionResponseSchema = z.object({
+  id: z.uuid(),
+  code: z.literal('BIG_FIVE_MINI_IPIP'),
+  version: z.string(),
+  title: z.string(),
+  scale: z.object({ minimum: z.number().int(), maximum: z.number().int() }),
+  estimatedMinutes: z.number().int().positive(),
+  questions: z.array(assessmentQuestionSchema).min(1),
+  source: z.object({
+    name: z.string(),
+    url: z.url(),
+    license: z.literal('public-domain'),
+  }),
+});
+
+export const assessmentAnswerSchema = z.object({
+  questionId: z.uuid(),
+  value: z.number().int().min(1).max(5),
+});
+
+export const saveAssessmentAnswersRequestSchema = z.object({
+  answers: z.array(assessmentAnswerSchema).max(20).refine(
+    (answers) => new Set(answers.map((answer) => answer.questionId)).size === answers.length,
+    { message: '同一题目不能重复提交' },
+  ),
+});
+
+export const assessmentAttemptResponseSchema = z.object({
+  id: z.uuid(),
+  profileId: z.uuid(),
+  status: z.enum(['IN_PROGRESS', 'COMPLETED', 'ABANDONED', 'INVALID']),
+  definition: assessmentDefinitionResponseSchema,
+  answers: z.array(assessmentAnswerSchema),
+  startedAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+  completedAt: z.iso.datetime().nullable(),
+});
+
+const assessmentDimensionScoreSchema = z.object({
+  rawScore: z.number().nullable(),
+  normalizedScore: z.number().min(0).max(100).nullable(),
+  answeredQuestions: z.number().int().nonnegative(),
+  totalQuestions: z.number().int().positive(),
+});
+
+export const assessmentResultResponseSchema = z.object({
+  attemptId: z.uuid(),
+  profileId: z.uuid(),
+  status: z.enum(['COMPLETED', 'INVALID']),
+  definitionCode: z.string(),
+  definitionVersion: z.string(),
+  dimensions: z.object({
+    OPENNESS: assessmentDimensionScoreSchema,
+    CONSCIENTIOUSNESS: assessmentDimensionScoreSchema,
+    EXTRAVERSION: assessmentDimensionScoreSchema,
+    AGREEABLENESS: assessmentDimensionScoreSchema,
+    NEUROTICISM: assessmentDimensionScoreSchema,
+  }),
+  dataCompleteness: z.number().min(0).max(1),
+  validity: z.object({
+    isValid: z.boolean(),
+    completionRatio: z.number().min(0).max(1),
+    sameAnswerRatio: z.number().min(0).max(1),
+    durationSeconds: z.number().nonnegative().nullable(),
+    issues: z.array(z.enum(['INCOMPLETE_ANSWERS', 'STRAIGHT_LINING', 'TOO_FAST'])),
+  }),
+  completedAt: z.iso.datetime(),
+});
+
+export type BigFiveDimension = z.infer<typeof bigFiveDimensionSchema>;
+export type AssessmentDefinitionResponse = z.infer<typeof assessmentDefinitionResponseSchema>;
+export type AssessmentAnswer = z.infer<typeof assessmentAnswerSchema>;
+export type SaveAssessmentAnswersRequest = z.infer<typeof saveAssessmentAnswersRequestSchema>;
+export type AssessmentAttemptResponse = z.infer<typeof assessmentAttemptResponseSchema>;
+export type AssessmentResultResponse = z.infer<typeof assessmentResultResponseSchema>;

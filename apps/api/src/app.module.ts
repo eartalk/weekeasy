@@ -8,6 +8,7 @@ import { ChartsModule } from './modules/charts/charts.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { ProfilesModule } from './modules/profiles/profiles.module.js';
+import { AssessmentsModule } from './modules/assessments/assessments.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ProfilesModule } from './modules/profiles/profiles.module.js';
     IdentityModule,
     ProfilesModule,
     ChartsModule,
+    AssessmentsModule,
   ],
 })
 export class AppModule {}
