@@ -6,6 +6,7 @@
 
 1. [产品定位与原则](./product/产品定位与原则.md)
 2. [功能地图与 MVP 范围](./product/功能地图与MVP范围.md)
+3. [Mini-IPIP 简版题库](./product/Mini-IPIP简版题库.md)
 
 ## 技术架构
 

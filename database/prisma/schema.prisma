@@ -64,6 +64,23 @@ enum ChartStatus {
   @@map("chart_status")
 }
 
+enum DefinitionStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+
+  @@map("definition_status")
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+  INVALID
+
+  @@map("attempt_status")
+}
+
 enum ActorType {
   USER
   ADMIN
@@ -136,6 +153,7 @@ model Profile {
   guestSession       GuestSession?       @relation(fields: [anonymousId], references: [id], onDelete: Restrict)
   birthRecords       BirthRecord[]
   natalCharts        NatalChart[]
+  assessmentAttempts AssessmentAttempt[]
 
   @@index([ownerUserId, deletedAt], map: "profiles_owner_user_id_deleted_at_idx")
   @@index([anonymousId, deletedAt], map: "profiles_anonymous_id_deleted_at_idx")
@@ -197,6 +215,73 @@ model NatalChart {
   @@index([profileId, calculatedAt(sort: Desc)], map: "natal_charts_profile_id_calculated_at_idx")
   @@index([birthRecordId, engineVersion], map: "natal_charts_birth_record_engine_idx")
   @@map("natal_charts")
+}
+
+/// 版本化问卷定义；发布后不修改，题目或计分规则变化时创建新版本。
+model AssessmentDefinition {
+  id            String               @id @default(uuid(7)) @db.Uuid
+  code          String
+  version       String
+  title         String
+  status        DefinitionStatus     @default(DRAFT)
+  scoringConfig Json                 @map("scoring_config")
+  publishedAt   DateTime?            @map("published_at") @db.Timestamptz(6)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  questions     AssessmentQuestion[]
+  attempts      AssessmentAttempt[]
+
+  @@unique([code, version], map: "assessment_definitions_code_version_key")
+  @@index([status, publishedAt(sort: Desc)], map: "assessment_definitions_status_published_at_idx")
+  @@map("assessment_definitions")
+}
+
+model AssessmentQuestion {
+  id            String               @id @default(uuid(7)) @db.Uuid
+  definitionId  String               @map("definition_id") @db.Uuid
+  code          String
+  position      Int
+  prompt        String
+  dimension     String
+  reverseScored Boolean              @default(false) @map("reverse_scored")
+  weight        Decimal              @default(1) @db.Decimal(6, 3)
+  definition    AssessmentDefinition @relation(fields: [definitionId], references: [id], onDelete: Restrict)
+  answers       AssessmentAnswer[]
+
+  @@unique([definitionId, code], map: "assessment_questions_definition_id_code_key")
+  @@unique([definitionId, position], map: "assessment_questions_definition_id_position_key")
+  @@map("assessment_questions")
+}
+
+model AssessmentAttempt {
+  id           String               @id @default(uuid(7)) @db.Uuid
+  profileId    String               @map("profile_id") @db.Uuid
+  definitionId String               @map("definition_id") @db.Uuid
+  status       AttemptStatus        @default(IN_PROGRESS)
+  resultData   Json?                @map("result_data")
+  validityData Json?                @map("validity_data")
+  startedAt    DateTime             @default(now()) @map("started_at") @db.Timestamptz(6)
+  updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt  DateTime?            @map("completed_at") @db.Timestamptz(6)
+  profile      Profile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  definition   AssessmentDefinition @relation(fields: [definitionId], references: [id], onDelete: Restrict)
+  answers      AssessmentAnswer[]
+
+  @@index([profileId, completedAt(sort: Desc)], map: "assessment_attempts_profile_id_completed_at_idx")
+  @@index([profileId, status, updatedAt(sort: Desc)], map: "assessment_attempts_profile_status_updated_at_idx")
+  @@map("assessment_attempts")
+}
+
+model AssessmentAnswer {
+  id         String             @id @default(uuid(7)) @db.Uuid
+  attemptId  String             @map("attempt_id") @db.Uuid
+  questionId String             @map("question_id") @db.Uuid
+  value      Int                @db.SmallInt
+  answeredAt DateTime           @default(now()) @map("answered_at") @db.Timestamptz(6)
+  attempt    AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question   AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([attemptId, questionId], map: "assessment_answers_attempt_id_question_id_key")
+  @@map("assessment_answers")
 }
 
 model AuditLog {
