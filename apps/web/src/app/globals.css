@@ -130,6 +130,33 @@ select {
   outline-offset: 4px;
 }
 
+.secondary-action {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 28%);
+  padding: 0.65rem 1.1rem;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.secondary-action:hover {
+  border-color: var(--jade);
+  background: rgb(255 255 255 / 55%);
+  transform: translateY(-1px);
+}
+
+.secondary-action:focus-visible {
+  outline: 2px solid var(--cinnabar);
+  outline-offset: 3px;
+}
+
 .field-label {
   display: block;
   margin-bottom: 0.55rem;
@@ -197,5 +224,15 @@ select {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .paper-grid {
+    display: none;
   }
 }

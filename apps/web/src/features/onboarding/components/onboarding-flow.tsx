@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type {
@@ -23,7 +24,6 @@ const LOCATION_PRESETS = {
     regionName: '上海市',
     cityName: '上海市',
     timezoneId: 'Asia/Shanghai',
-    utcOffsetMinutes: 480,
     latitude: 31.2304,
     longitude: 121.4737,
   },
@@ -33,7 +33,6 @@ const LOCATION_PRESETS = {
     regionName: '北京市',
     cityName: '北京市',
     timezoneId: 'Asia/Shanghai',
-    utcOffsetMinutes: 480,
     latitude: 39.9042,
     longitude: 116.4074,
   },
@@ -43,7 +42,6 @@ const LOCATION_PRESETS = {
     regionName: '广东省',
     cityName: '广州市',
     timezoneId: 'Asia/Shanghai',
-    utcOffsetMinutes: 480,
     latitude: 23.1291,
     longitude: 113.2644,
   },
@@ -53,7 +51,6 @@ const LOCATION_PRESETS = {
     regionName: '四川省',
     cityName: '成都市',
     timezoneId: 'Asia/Shanghai',
-    utcOffsetMinutes: 480,
     latitude: 30.5728,
     longitude: 104.0668,
   },
@@ -100,6 +97,7 @@ export function OnboardingFlow() {
   const [gender, setGender] = useState<'MALE' | 'FEMALE' | 'UNSPECIFIED'>('UNSPECIFIED');
   const [topics, setTopics] = useState<string[]>([]);
   const [calendarType, setCalendarType] = useState<'SOLAR' | 'LUNAR'>('SOLAR');
+  const [isLeapMonth, setIsLeapMonth] = useState(false);
   const [precision, setPrecision] = useState<Precision>('MINUTE');
   const [localDate, setLocalDate] = useState('');
   const [localTime, setLocalTime] = useState('08:00');
@@ -109,7 +107,6 @@ export function OnboardingFlow() {
     regionName: '',
     cityName: '',
     timezoneId: 'Asia/Shanghai',
-    utcOffsetMinutes: '480',
     latitude: '',
     longitude: '',
   });
@@ -156,18 +153,17 @@ export function OnboardingFlow() {
             regionName: customLocation.regionName || null,
             cityName: customLocation.cityName || null,
             timezoneId: customLocation.timezoneId,
-            utcOffsetMinutes: Number(customLocation.utcOffsetMinutes),
             latitude: customLocation.latitude === '' ? null : Number(customLocation.latitude),
             longitude: customLocation.longitude === '' ? null : Number(customLocation.longitude),
           }
         : LOCATION_PRESETS[locationKey];
     return {
       calendarType,
+      isLeapMonth: calendarType === 'LUNAR' && isLeapMonth,
       precision,
       localDate,
       localTime: precision === 'UNKNOWN_HOUR' ? null : precision === 'HOUR' ? `${localTime.slice(0, 2)}:00` : localTime,
       timezoneId: location.timezoneId,
-      utcOffsetMinutes: location.utcOffsetMinutes,
       countryCode: location.countryCode,
       regionName: location.regionName,
       cityName: location.cityName,
@@ -273,10 +269,27 @@ export function OnboardingFlow() {
                   </label>
                 ))}
               </div>
+              {calendarType === 'LUNAR' ? (
+                <label className="mt-3 flex items-center gap-2 text-sm text-[var(--ink-muted)]">
+                  <input checked={isLeapMonth} onChange={(event) => setIsLeapMonth(event.target.checked)} type="checkbox" />
+                  这是闰月
+                </label>
+              ) : null}
             </fieldset>
             <div>
               <label className="field-label" htmlFor="localDate">出生日期</label>
-              <input className="field-input" id="localDate" max={today} onChange={(event) => setLocalDate(event.target.value)} required type="date" value={localDate} />
+              <input
+                className="field-input"
+                id="localDate"
+                max={calendarType === 'SOLAR' ? today : undefined}
+                onChange={(event) => setLocalDate(event.target.value)}
+                pattern={calendarType === 'LUNAR' ? '\\d{4}-\\d{2}-\\d{2}' : undefined}
+                placeholder={calendarType === 'LUNAR' ? '例如 2023-02-30' : undefined}
+                required
+                type={calendarType === 'SOLAR' ? 'date' : 'text'}
+                value={localDate}
+              />
+              {calendarType === 'LUNAR' ? <p className="mt-2 text-xs text-[var(--ink-soft)]">请按农历年-月-日填写，例如二月三十写作 2023-02-30。</p> : null}
             </div>
           </div>
 
@@ -317,8 +330,7 @@ export function OnboardingFlow() {
               <TextField label="省／州" onChange={(value) => setCustomLocation({ ...customLocation, regionName: value })} value={customLocation.regionName} />
               <TextField label="城市" onChange={(value) => setCustomLocation({ ...customLocation, cityName: value })} required value={customLocation.cityName} />
               <TextField label="IANA 时区" onChange={(value) => setCustomLocation({ ...customLocation, timezoneId: value })} required value={customLocation.timezoneId} />
-              <NumberField label="UTC 偏移（分钟）" max={840} min={-840} onChange={(value) => setCustomLocation({ ...customLocation, utcOffsetMinutes: value })} required value={customLocation.utcOffsetMinutes} />
-              <div />
+              <p className="self-end text-xs leading-5 text-[var(--ink-soft)] sm:col-span-2">历史 UTC 偏移将根据 IANA 时区和出生日期由服务端自动计算。</p>
               <NumberField label="纬度" max={90} min={-90} onChange={(value) => setCustomLocation({ ...customLocation, latitude: value })} required={useTrueSolarTime} step="0.000001" value={customLocation.latitude} />
               <NumberField label="经度" max={180} min={-180} onChange={(value) => setCustomLocation({ ...customLocation, longitude: value })} required={useTrueSolarTime} step="0.000001" value={customLocation.longitude} />
             </div>
@@ -354,12 +366,12 @@ export function OnboardingFlow() {
             {profile.displayName}，你的第 {birthRecord.revision} 版出生信息已安全保存。下一步将由确定性代码生成基础命盘，不会让 AI 自行排盘。
           </p>
           <div className="mx-auto mt-9 max-w-lg border-y border-[var(--line)] py-5 text-left text-sm">
-            <div className="flex justify-between gap-6 py-2"><span className="text-[var(--ink-soft)]">历法</span><strong>{birthRecord.calendarType === 'SOLAR' ? '公历' : '农历'}</strong></div>
+            <div className="flex justify-between gap-6 py-2"><span className="text-[var(--ink-soft)]">历法</span><strong>{birthRecord.calendarType === 'SOLAR' ? '公历' : `农历${birthRecord.isLeapMonth ? ' · 闰月' : ''}`}</strong></div>
             <div className="flex justify-between gap-6 py-2"><span className="text-[var(--ink-soft)]">时间精度</span><strong>{birthRecord.precision === 'UNKNOWN_HOUR' ? '未知时辰' : birthRecord.precision === 'HOUR' ? '精确到小时' : '精确到分钟'}</strong></div>
             <div className="flex justify-between gap-6 py-2"><span className="text-[var(--ink-soft)]">真太阳时</span><strong>{birthRecord.useTrueSolarTime ? '将在排盘时修正' : '不使用'}</strong></div>
           </div>
-          <button className="primary-link mt-9 opacity-55" disabled type="button">继续生成基础命盘 <span aria-hidden="true">→</span></button>
-          <p className="mt-3 text-xs text-[var(--ink-soft)]">排盘引擎正在下一个开发切片中接入</p>
+          <Link className="primary-link mt-9" href={`/charts/${profile.id}`}>查看基础命盘 <span aria-hidden="true">→</span></Link>
+          <p className="mt-3 text-xs text-[var(--ink-soft)]">命盘已由确定性引擎生成，不包含 AI 推断</p>
         </section>
       ) : null}
     </div>
